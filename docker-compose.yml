@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  brdgenius-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9002:3000" # Map host port 9002 to container port 3000 (Next.js default)
+    environment:
+      NODE_ENV: production
+    # If you have a .env file with runtime configurations (not build-time)
+    # env_file:
+    #   - .env
+    # For development with live reload, you might mount volumes,
+    # but for a production-like build, this is generally not done.
+    # volumes:
+    #   - .:/app
+    #   - /app/node_modules
+    #   - /app/.next
+    restart: unless-stopped

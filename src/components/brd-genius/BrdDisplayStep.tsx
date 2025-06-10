@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { downloadTextFile, downloadMarkdownFile } from '@/lib/download';
-import { FileText, Download, RefreshCw } from "lucide-react";
+import { downloadTextFile, downloadMarkdownFile, downloadDocxFile } from '@/lib/download';
+import { FileText, Download, RefreshCw, FileType } from "lucide-react";
 
 interface BrdDisplayStepProps {
   brd: string;
@@ -25,6 +25,15 @@ export function BrdDisplayStep({ brd, isLoading, onRestart, fileName }: BrdDispl
     downloadMarkdownFile(fileName, brd);
   };
 
+  const handleDownloadDocx = async () => {
+    try {
+      await downloadDocxFile(fileName, brd);
+    } catch (error) {
+      console.error("Error generating or downloading DOCX file:", error);
+      alert("Failed to download DOCX file. Please ensure your browser supports this feature or try another format.");
+    }
+  };
+
   return (
     <>
       <CardHeader>
@@ -40,13 +49,13 @@ export function BrdDisplayStep({ brd, isLoading, onRestart, fileName }: BrdDispl
         {isLoading && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground text-center">Generating your BRD, please wait...</p>
-            <Progress value={50} className="w-full animate-pulse" /> {}
+            <Progress value={50} className="w-full animate-pulse" />
           </div>
         )}
         
         {!isLoading && brd && (
           <ScrollArea className="h-96 w-full rounded-md border p-4 bg-muted/20">
-            <pre className="text-sm whitespace-pre-wrap font-code">{brd}</pre>
+            <pre className="text-sm whitespace-pre-wrap font-mono">{brd}</pre>
           </ScrollArea>
         )}
 
@@ -63,14 +72,18 @@ export function BrdDisplayStep({ brd, isLoading, onRestart, fileName }: BrdDispl
             Start Over
           </Button>
           {!isLoading && brd && (
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto justify-end">
               <Button onClick={handleDownloadTxt} variant="secondary" className="w-full sm:w-auto">
                 <Download className="mr-2 h-4 w-4" />
-                Download as TXT
+                TXT
               </Button>
-              <Button onClick={handleDownloadMd} className="w-full sm:w-auto bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Button onClick={handleDownloadMd} variant="secondary" className="w-full sm:w-auto">
                 <Download className="mr-2 h-4 w-4" />
-                Download as Markdown
+                Markdown
+              </Button>
+              <Button onClick={handleDownloadDocx} className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground">
+                <FileType className="mr-2 h-4 w-4" />
+                DOCX
               </Button>
             </div>
           )}

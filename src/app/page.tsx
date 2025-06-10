@@ -7,7 +7,7 @@ import { LogoIcon } from '@/components/icons/LogoIcon';
 import { StepIndicator } from '@/components/brd-genius/StepIndicator';
 import { ProblemStatementStep } from '@/components/brd-genius/ProblemStatementStep';
 import { SolutionsStep } from '@/components/brd-genius/SolutionsStep';
-import { TechStackStep } from '@/components/brd-genius/TechStackStep';
+import { TechStackStep, type TechStackData } from '@/components/brd-genius/TechStackStep';
 import { BrdDisplayStep } from '@/components/brd-genius/BrdDisplayStep';
 
 import { suggestSolutions, type SuggestSolutionsInput, type SuggestSolutionsOutput } from '@/ai/flows/suggest-solutions';
@@ -19,35 +19,37 @@ export default function BrdGeniusPage() {
   const [problemStatement, setProblemStatement] = useState('');
   const [suggestedSolutionsList, setSuggestedSolutionsList] = useState<string[]>([]);
   const [chosenSolution, setChosenSolution] = useState('');
-  const [techStack, setTechStack] = useState('');
+  const [techStack, setTechStack] = useState<TechStackData>({ frontend: '', backend: '', database: '' });
   const [generatedBrdContent, setGeneratedBrdContent] = useState('');
 
-  const [isLoading, setIsLoading] = useState(false); // General loading for submissions
-  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false); // Specific for fetching solutions
+  const [isLoading, setIsLoading] = useState(false); 
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false); 
   
   const { toast } = useToast();
 
   const totalSteps = 4;
   const brdFileName = "BRDGenius_Document";
 
-  // Persist state to localStorage
   useEffect(() => {
-    const savedState = localStorage.getItem('brdGeniusState');
-    if (savedState) {
-      const {
-        currentStep,
-        problemStatement,
-        suggestedSolutionsList,
-        chosenSolution,
-        techStack,
-        generatedBrdContent,
-      } = JSON.parse(savedState);
-      setCurrentStep(currentStep || 1);
-      setProblemStatement(problemStatement || '');
-      setSuggestedSolutionsList(suggestedSolutionsList || []);
-      setChosenSolution(chosenSolution || '');
-      setTechStack(techStack || '');
-      setGeneratedBrdContent(generatedBrdContent || '');
+    const savedStateString = localStorage.getItem('brdGeniusState');
+    if (savedStateString) {
+      try {
+        const savedState = JSON.parse(savedStateString);
+        setCurrentStep(savedState.currentStep || 1);
+        setProblemStatement(savedState.problemStatement || '');
+        setSuggestedSolutionsList(savedState.suggestedSolutionsList || []);
+        setChosenSolution(savedState.chosenSolution || '');
+        // Handle techStack potentially being old string format or new object format
+        if (typeof savedState.techStack === 'string') {
+          setTechStack({ frontend: savedState.techStack, backend: '', database: '' });
+        } else {
+          setTechStack(savedState.techStack || { frontend: '', backend: '', database: '' });
+        }
+        setGeneratedBrdContent(savedState.generatedBrdContent || '');
+      } catch (error) {
+        console.error("Error parsing saved state from localStorage:", error);
+        localStorage.removeItem('brdGeniusState'); // Clear corrupted state
+      }
     }
   }, []);
 
@@ -75,13 +77,13 @@ export default function BrdGeniusPage() {
         setSuggestedSolutionsList(result.solutions);
         setCurrentStep(2);
       } else {
-        setSuggestedSolutionsList([]); // Ensure it's an empty array
+        setSuggestedSolutionsList([]); 
         toast({
           title: "No Solutions Found",
           description: "AI couldn't suggest solutions. Try rephrasing your problem or proceed.",
           variant: "default",
         });
-        setCurrentStep(2); // Still go to next step to allow manual progression or retry
+        setCurrentStep(2); 
       }
     } catch (error) {
       console.error("Error suggesting solutions:", error);
@@ -102,23 +104,25 @@ export default function BrdGeniusPage() {
     setCurrentStep(3);
   };
 
-  const handleTechStackSubmit = async (stack: string) => {
-    setTechStack(stack);
+  const handleTechStackSubmit = async (stacks: TechStackData) => {
+    setTechStack(stacks);
     setIsLoading(true);
-    setGeneratedBrdContent(''); // Clear previous BRD content
-    setCurrentStep(4); // Move to BRD display step to show loading
+    setGeneratedBrdContent(''); 
+    setCurrentStep(4); 
     try {
       const input: GenerateBrdInput = {
         problemStatement,
         chosenSolution,
-        techStack: stack,
+        frontendStack: stacks.frontend,
+        backendStack: stacks.backend,
+        databaseStack: stacks.database,
       };
       const result: GenerateBrdOutput = await generateBrd(input);
       setGeneratedBrdContent(result.brd);
       toast({
         title: "BRD Generated!",
         description: "Your Business Requirements Document is ready.",
-        variant: "default", // Use 'default' which maps to accent via globals.css
+        variant: "default", 
         className: "bg-accent text-accent-foreground border-accent"
       });
     } catch (error) {
@@ -145,7 +149,7 @@ export default function BrdGeniusPage() {
     setProblemStatement('');
     setSuggestedSolutionsList([]);
     setChosenSolution('');
-    setTechStack('');
+    setTechStack({ frontend: '', backend: '', database: '' });
     setGeneratedBrdContent('');
     setIsLoading(false);
     setIsSuggestionsLoading(false);
@@ -173,7 +177,7 @@ export default function BrdGeniusPage() {
             suggestedSolutions={suggestedSolutionsList}
             onSelect={handleSolutionSelect}
             onBack={handleBack}
-            isLoading={isLoading && !isSuggestionsLoading} // general loading if not suggestions loading
+            isLoading={isLoading && !isSuggestionsLoading}
             isSuggestionsLoading={isSuggestionsLoading}
             initialSelection={chosenSolution}
           />
@@ -191,7 +195,7 @@ export default function BrdGeniusPage() {
         return (
           <BrdDisplayStep
             brd={generatedBrdContent}
-            isLoading={isLoading} // This isLoading is for BRD generation itself
+            isLoading={isLoading}
             onRestart={handleRestart}
             fileName={brdFileName}
           />
