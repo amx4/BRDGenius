@@ -1,44 +1,44 @@
-# Stage 1: Build the application
-FROM node:20-slim AS builder
+
+# Dockerfile for BRDGenius Next.js Application
+
+# 1. Install dependencies
+FROM node:18-alpine AS deps
 WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm install --frozen-lockfile
 
-# Install dependencies
-COPY package.json ./
-# If package-lock.json is used and committed, prefer npm ci
-# COPY package-lock.json ./
-# RUN npm ci --legacy-peer-deps
-RUN npm install --legacy-peer-deps
-
+# 2. Build the application
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build the Next.js application
-# Ensure your build script is correctly defined in package.json
+# Environment variables for build time if any
+# ARG NEXT_PUBLIC_API_KEY
+# ENV NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}
+
 RUN npm run build
 
-# Stage 2: Production image
-FROM node:20-slim AS runner
+# 3. Production image
+FROM node:18-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
+# Set NEXT_TELEMETRY_DISABLED to 1 to disable Next.js telemetry
+ENV NEXT_TELEMETRY_DISABLED 1
 
-# Next.js recommends creating a non-root user, but node:slim images already include a 'node' user.
-# We will use the existing 'node' user.
-# USER node
-# Group 'node' also exists.
-
-# Copy necessary files from the builder stage
-# Public assets
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Standalone output (ensure next.config.js has output: 'standalone')
-COPY --from=builder --chown=node:node /app/.next/standalone ./
-COPY --from=builder --chown=node:node /app/.next/static ./.next/static
+# If you have a custom server.js, copy it here.
+# COPY --from=builder /app/server.js ./server.js
 
-# Set the user to the non-root user 'node'
-USER node
-
-# Expose the port the app runs on (Next.js default is 3000)
 EXPOSE 3000
+ENV PORT 3000
 
-# The standalone output includes a server.js file.
+# USER nextjs # Uncomment if you create a non-root user
+
 CMD ["node", "server.js"]
