@@ -159,4 +159,3 @@ BRDGenius guides the user through a series of steps to create a BRD:
 5.  **Generate & Display BRD:** AI (Genkit flow `generateBrd`) populates the chosen BRD structure template with the information gathered in previous steps. The generated BRD is displayed in a textarea for review and editing. The user can then download the BRD in TXT, Markdown, or DOCX format.
 
 The application state (current step, inputs, generated content) is persisted in the browser's local storage to allow users to resume their progress.
-```
